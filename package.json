@@ -1,0 +1,20 @@
+{
+  "name": "saccadic-animation",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "remotion render Saccadic saccadic_final.mp4"
+  },
+  "dependencies": {
+    "remotion": "^4.0.218",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@remotion/cli": "^4.0.218",
+    "@remotion/renderer": "^4.0.218",
+    "typescript": "^5.0.0"
+  },
+  "remotion": {
+    "entryPoint": "src/index.ts"
+  }
+}
