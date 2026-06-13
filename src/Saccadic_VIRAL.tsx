@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig, Sequence } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig, Sequence, Audio, staticFile } from 'remotion';
 
 const W = 1080, H = 1920, CX = 540, CY = 960, FPS = 60;
 const BG = '#0E1117';
@@ -50,8 +50,8 @@ const NeuralGate: React.FC<{ frame: number; open: boolean }> = ({ frame, open })
   return (
     <g>
       <rect x={CX - 500} y={CY - 400 + gatePos} width={1000} height={400} fill={RED} opacity={0.3} stroke={RED} strokeWidth={5} />
-      <rect x={CX - 500} y={CY + gatePos} width={1000} height={400} fill={RED} opacity={0.3} stroke={RED} strokeWidth={5} />
-      <text x={CX} y={CY - 10} textAnchor="middle" fill={WHITE} fontSize={60} fontFamily="Bebas Neue">
+      <rect x={CX - 500} y={CY + 400 - gatePos} width={1000} height={400} fill={RED} opacity={0.3} stroke={RED} strokeWidth={5} />
+      <text x={CX} y={CY - 10} textAnchor="middle" fill={WHITE} fontSize={60} fontWeight="bold">
         {open ? 'SIGNAL ON' : 'SIGNAL BLOCKED'}
       </text>
     </g>
@@ -65,36 +65,54 @@ export const SaccadicViral: React.FC = () => {
   const isBlocked = Math.abs(Math.cos(frame * 0.1)) < 0.2; // Block during high velocity phases
   
   const activeSub = SUBS.find(s => frame >= s.f && frame <= s.t);
+  
+  // High energy effects
+  const jitter = (frame % 2 === 0) ? 0 : interpolate(Math.random(), [0, 1], [-2, 2]);
+  const flash = isBlocked && frame < T.PROOF_E ? 0.1 : 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: BG }}>
+      <Audio src={staticFile('audio/saccadic_audio.mp3')} />
+      
       {/* Dynamic Background */}
-      <AbsoluteFill opacity={0.2}>
+      <svg width={W} height={H} style={{ position: 'absolute', opacity: 0.2 }}>
          {Array.from({ length: 20 }).map((_, i) => (
-           <rect key={i} x={0} y={i * 100} width={W} height={2} fill={TEAL} />
+           <rect key={i} x={0} y={i * 100 + (frame % 100)} width={W} height={2} fill={TEAL} />
          ))}
-      </AbsoluteFill>
+      </svg>
+
+      {/* Flash Effect */}
+      <AbsoluteFill style={{ backgroundColor: RED, opacity: flash }} />
 
       {/* Main Animation Stage */}
-      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-        
-        {/* Mirror Scenario */}
-        {frame < T.MECH_E && (
-          <g transform={`scale(${sp(frame)})`}>
-            <rect x={CX - 300} y={CY - 300} width={600} height={600} fill="none" stroke={WHITE} strokeWidth={10} />
-            <Eyeball frame={frame} x={CX - 150} y={CY} size={100} lookAtX={eyeMove} />
-            <Eyeball frame={frame} x={CX + 150} y={CY} size={100} lookAtX={eyeMove} />
-          </g>
-        )}
+      <svg width={W} height={H} style={{ position: 'absolute' }}>
+        <g transform={`translate(${jitter}, ${jitter})`}>
+          {/* Mirror Scenario */}
+          {frame < T.MECH_E && (
+            <g transform={`translate(${CX}, ${CY}) scale(${sp(frame)}) rotate(${Math.sin(frame * 0.1) * 5}) translate(${-CX}, ${-CY})`}>
+              <rect x={CX - 300} y={CY - 300} width={600} height={600} fill="none" stroke={WHITE} strokeWidth={10} />
+              <Eyeball frame={frame} x={CX - 150} y={CY} size={100} lookAtX={eyeMove} />
+              <Eyeball frame={frame} x={CX + 150} y={CY} size={100} lookAtX={eyeMove} />
+            </g>
+          )}
 
-        {/* Neural Mechanism */}
-        {frame > T.MECH_S && frame < T.PROOF_E && (
-           <NeuralGate frame={frame % 120} open={!isBlocked} />
-        )}
+          {/* Neural Mechanism */}
+          {frame > T.MECH_S && frame < T.PROOF_E && (
+             <NeuralGate frame={frame % 120} open={!isBlocked} />
+          )}
+        </g>
+      </svg>
 
-        {/* The 40 Minutes Fact */}
+      {/* The 40 Minutes Fact Overlay (Div for Text) */}
+      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' }}>
         {frame > T.TWIST_S && (
-          <div style={{ color: GOLD, fontSize: 180, fontWeight: 'bold', transform: `scale(${sp(frame - T.TWIST_S)})` }}>
+          <div style={{ 
+            color: GOLD, 
+            fontSize: 200, 
+            fontWeight: 'bold', 
+            textShadow: '0 0 20px rgba(253, 203, 110, 0.5)',
+            transform: `scale(${sp(frame - T.TWIST_S)}) rotate(${Math.sin(frame * 0.2) * 10}deg)` 
+          }}>
             40 MINS
           </div>
         )}
@@ -103,16 +121,22 @@ export const SaccadicViral: React.FC = () => {
       {/* Subtitles Overlay */}
       <div style={{ position: 'absolute', bottom: 250, width: '100%', textAlign: 'center', padding: '0 50px' }}>
         {activeSub && (
-          <div style={{ background: 'rgba(0,0,0,0.6)', padding: '20px', borderRadius: '20px' }}>
-             <p style={{ color: GOLD, fontSize: 55, fontWeight: 'bold', margin: '0 0 10px 0' }}>{activeSub.h}</p>
-             <p style={{ color: WHITE, fontSize: 30, fontStyle: 'italic', opacity: 0.8 }}>{activeSub.r}</p>
+          <div style={{ 
+            background: 'rgba(0,0,0,0.7)', 
+            padding: '30px', 
+            borderRadius: '30px', 
+            border: `2px solid ${TEAL}`,
+            transform: `translateY(${interpolate(frame, [activeSub.f, activeSub.f + 10], [50, 0], {extrapolateRight: 'clamp'})}px)` 
+          }}>
+             <p style={{ color: GOLD, fontSize: 60, fontWeight: 'bold', margin: '0 0 10px 0' }}>{activeSub.h}</p>
+             <p style={{ color: WHITE, fontSize: 35, fontStyle: 'italic', opacity: 0.9 }}>{activeSub.r}</p>
           </div>
         )}
       </div>
 
       {/* Progress Bar */}
-      <div style={{ position: 'absolute', top: 0, width: '100%', height: 15, backgroundColor: 'rgba(255,255,255,0.1)' }}>
-        <div style={{ width: `${(frame / T.TOTAL) * 100}%`, height: '100%', backgroundColor: TEAL }} />
+      <div style={{ position: 'absolute', top: 0, width: '100%', height: 20, backgroundColor: 'rgba(255,255,255,0.1)' }}>
+        <div style={{ width: `${(frame / T.TOTAL) * 100}%`, height: '100%', backgroundColor: TEAL, boxShadow: `0 0 20px ${TEAL}` }} />
       </div>
 
     </AbsoluteFill>
