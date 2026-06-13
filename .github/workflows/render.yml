@@ -8,6 +8,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Create audio directory
+        run: mkdir -p public/audio
+      - name: Download audio
+        run: curl -L https://share.zapia.com/eibzjvg3kond75lsom7c6w -o public/audio/saccadic_audio.mp3
       - run: npm install
       - run: npm run build
       - uses: actions/upload-artifact@v4
